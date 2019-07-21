@@ -76,30 +76,50 @@ class Client:
 
 
 class ConvertUtil:
-    @staticmethod
-    def convert_if_necessary(key_value):
-        if not isinstance(key_value, dict):
-            return key_value
+    marker = ','
 
-        if len(key_value) > 1:
-            raise NotImplementedError
+    @classmethod
+    def convert(cls, possibly_dict):
+        def is_single_dict(given_item):
+            return isinstance(given_item, dict) and len(given_item) == 1
 
-        for key, value in key_value.items():
-            if key in ['N', 'S']:
-                return value
-            if isinstance(value, dict):
-                return '{}: {}'.format(key, ConvertUtil.convert_if_necessary(value))
-            if isinstance(value, list):
-                return '{}: {}'.format(key, [ConvertUtil.convert_if_necessary(item)
-                                             for item in value])
-            return '{}: {}'.format(key, value)
+        def get_list_output(input_list):
+            if isinstance(input_list, dict):
+                raise ValueError
+            return cls.marker.join(ConvertUtil.convert(val)
+                                   for val in input_list)
 
-    @staticmethod
-    def convert_items(given_list):
+        if not (isinstance(possibly_dict, dict) or isinstance(possibly_dict, list)):
+            return str(possibly_dict)
+
+        if isinstance(possibly_dict, list):
+            return '[' + get_list_output(possibly_dict) + ']'
+
+        is_single = is_single_dict(possibly_dict)
+        so_far = []
+        for key, value in possibly_dict.items():
+            if key in ['S', 'N', 'BOOL', 'NULL', 'M']:
+                so_far += [ConvertUtil.convert(value)]
+            elif key in ['SS', 'NS', 'BS']:
+                so_far += ['{' + ConvertUtil.convert(value) + '}']
+            elif key in ['L']:
+                so_far += ['[' + get_list_output(value) + ']']
+            else:
+                so_far += [str(key) + ': ' + ConvertUtil.convert(value)]
+
+        result = cls.marker.join(so_far)
+
+        return '{' + result + '}' if not is_single else result
+
+    @classmethod
+    def convert_items(cls, given_list):
+        '''
+        :param given_list: Assumes an iterable from DynamoDB response resulted from key 'Item'
+        '''
         assert isinstance(given_list, list)
 
         for idx, given_dict in enumerate(given_list):
-            converted = {key: ConvertUtil.convert_if_necessary(value)
+            converted = {key: ConvertUtil.convert(value)
                          for key, value in given_dict.items()}
             # Warning: inplace operation, not functional...
             given_list[idx] = converted
