@@ -3,6 +3,8 @@ import pprint
 import pandas as pd
 import yaml
 
+from convert_util import ConvertUtil
+
 yaml_dict = yaml.load(open('config.yaml', 'r'))
 
 accessKeyId = yaml_dict['accessKeyId']
@@ -73,58 +75,6 @@ class Client:
 
     def describe_table(self):
         return self.client.describe_table(TableName=TABLE_NAME)['Table']
-
-
-class ConvertUtil:
-    marker = ','
-
-    @classmethod
-    def convert(cls, possibly_dict):
-        def is_single_dict(given_item):
-            return isinstance(given_item, dict) and len(given_item) == 1
-
-        def get_list_output(input_list):
-            if isinstance(input_list, dict):
-                raise ValueError
-            return cls.marker.join(ConvertUtil.convert(val)
-                                   for val in input_list)
-
-        if not (isinstance(possibly_dict, dict) or isinstance(possibly_dict, list)):
-            return str(possibly_dict)
-
-        if isinstance(possibly_dict, list):
-            return '[' + get_list_output(possibly_dict) + ']'
-
-        is_single = is_single_dict(possibly_dict)
-        so_far = []
-        for key, value in possibly_dict.items():
-            if key in ['S', 'N', 'BOOL', 'NULL', 'M']:
-                so_far += [ConvertUtil.convert(value)]
-            elif key in ['SS', 'NS', 'BS']:
-                so_far += ['{' + ConvertUtil.convert(value) + '}']
-            elif key in ['L']:
-                so_far += ['[' + get_list_output(value) + ']']
-            else:
-                so_far += [str(key) + ': ' + ConvertUtil.convert(value)]
-
-        result = cls.marker.join(so_far)
-
-        return '{' + result + '}' if not is_single else result
-
-    @classmethod
-    def convert_items(cls, given_list):
-        '''
-        :param given_list: Assumes an iterable from DynamoDB response resulted from key 'Item'
-        '''
-        assert isinstance(given_list, list)
-
-        for idx, given_dict in enumerate(given_list):
-            converted = {key: ConvertUtil.convert(value)
-                         for key, value in given_dict.items()}
-            # Warning: inplace operation, not functional...
-            given_list[idx] = converted
-
-        return given_list
 
 
 if __name__ == '__main__':
