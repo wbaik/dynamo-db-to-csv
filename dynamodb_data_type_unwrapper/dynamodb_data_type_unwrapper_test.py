@@ -1,6 +1,6 @@
 import unittest
 
-from convert_util import ConvertUtil
+from dynamodb_data_type_unwrapper import DataTypeUnwrapper
 
 
 class TestConvertUtil(unittest.TestCase):
@@ -12,7 +12,7 @@ class TestConvertUtil(unittest.TestCase):
         }
         expected_output = 'Name: Alex DeBrie'
 
-        self.assertEqual(expected_output, ConvertUtil.convert(response_from_db))
+        self.assertEqual(expected_output, DataTypeUnwrapper.convert(response_from_db))
 
     def test_convert_non_singleton_dict(self):
 
@@ -22,7 +22,7 @@ class TestConvertUtil(unittest.TestCase):
         }
         expected_output = '{Name: Alex DeBrie, Age: 29}'
 
-        self.assertEqual(expected_output, ConvertUtil.convert(response_from_db))
+        self.assertEqual(expected_output, DataTypeUnwrapper.convert(response_from_db))
 
     def test_convert_non_singleton_dict_with_list(self):
 
@@ -36,7 +36,7 @@ class TestConvertUtil(unittest.TestCase):
                            'Age: 29, ' \
                            'Roles: [Admin, User]}'
 
-        self.assertEqual(expected_output, ConvertUtil.convert(response_from_db))
+        self.assertEqual(expected_output, DataTypeUnwrapper.convert(response_from_db))
 
     def test_convert_nested_dict(self):
         response_from_db = {
@@ -67,7 +67,7 @@ class TestConvertUtil(unittest.TestCase):
                           'Age: 29, ' \
                           'Roles: [Admin, User]}'
 
-        self.assertEqual(expected_output, ConvertUtil.convert(response_from_db))
+        self.assertEqual(expected_output, DataTypeUnwrapper.convert(response_from_db))
 
 
 if __name__ == '__main__':
