@@ -1,37 +1,14 @@
 import boto3
 import pprint
 import pandas as pd
-import yaml
 
-from convert_util import ConvertUtil
+from dynamodb_data_type_unwrapper import DataTypeUnwrapper
+from util import SimpleCounter, Yaml
 
-yaml_dict = yaml.load(open('config.yaml', 'r'))
-
-accessKeyId = yaml_dict['accessKeyId']
-secretAccessKey = yaml_dict['secretAccessKey']
-region = yaml_dict['region']
-TABLE_NAME = yaml_dict['TABLE_NAME']
-csv_file_name = yaml_dict['csv_file_name']
+accessKeyId, secretAccessKey, region, TABLE_NAME, csv_file_name = Yaml.get_config()
 
 
-class SimpleCounter:
-    def __init__(self, total_count):
-        self.total_count = total_count
-        self.current_count = 0
-
-    def add_count(self, count):
-        self.current_count += count
-
-    def add_counts_and_print(self, count):
-        self.add_count(count)
-        print('\r------------- Current progression: {}% loaded from DB'
-              .format(self), end='')
-
-    def __str__(self):
-        return '{:6.2f}'.format(self.current_count / self.total_count * 100)
-
-
-class Client:
+class DynamodbClient:
     def __init__(self):
         self.client = boto3.client('dynamodb',
                                    aws_access_key_id=accessKeyId,
@@ -60,7 +37,7 @@ class Client:
                                     ExclusiveStartKey=last_evaluated_key)
         return self.client.scan(TableName=TABLE_NAME)
 
-    def print(self):
+    def log_info(self):
         print('------------- Available tables from the DynamoDB: -------------')
         self.pp.pprint(self.available_tables)
 
@@ -76,24 +53,28 @@ class Client:
     def describe_table(self):
         return self.client.describe_table(TableName=TABLE_NAME)['Table']
 
+    @staticmethod
+    def download():
+        dynamodb_client = DynamodbClient()
+        dynamodb_client.log_info()
+
+        confirm = input('*** Enter [Y/y] if all is acceptable, else hit enter : ')
+        if confirm in ['Y', 'y']:
+            separator_is_tab = input('*** If tab(\\t) is wanted instead of a '
+                                     'comma(,) for the csv file, enter [Y/y], '
+                                     'else hit enter : ')
+            separator = ',' if separator_is_tab not in ['Y', 'y'] else '\t'
+
+            print('------------- Starting the download ---------------')
+            data_points = dynamodb_client.load_table_from_dynamodb()
+            data_points = DataTypeUnwrapper.convert_items(data_points)
+
+            print('\n------------- Finished downloading ---------------')
+            print('------------- Saving the downloads ---------------')
+            pd.DataFrame(data_points).to_csv(csv_file_name,
+                                             sep=separator,
+                                             index=False)
+
 
 if __name__ == '__main__':
-    client = Client()
-    client.print()
-
-    confirm = input('*** Enter [Y/y] if all is acceptable, else hit enter : ')
-    if confirm in ['Y', 'y']:
-        separator_is_tab = input('*** If tab(\\t) is wanted instead of a '
-                                 'comma(,) for the csv file, enter [Y/y], '
-                                 'else hit enter : ')
-        separator = ',' if separator_is_tab not in ['Y', 'y'] else '\t'
-
-        print('------------- Starting the download ---------------')
-        data_points = client.load_table_from_dynamodb()
-        data_points = ConvertUtil.convert_items(data_points)
-
-        print('\n------------- Finished downloading ---------------')
-        print('------------- Saving the downloads ---------------')
-        pd.DataFrame(data_points).to_csv(csv_file_name,
-                                         sep=separator,
-                                         index=False)
+    DynamodbClient.download()

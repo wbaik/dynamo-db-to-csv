@@ -1,4 +1,4 @@
-class ConvertUtil:
+class DataTypeUnwrapper:
     marker = ', '
 
     @classmethod
@@ -9,7 +9,7 @@ class ConvertUtil:
         def get_list_output(input_list):
             if isinstance(input_list, dict):
                 raise ValueError
-            return cls.marker.join(ConvertUtil.convert(val)
+            return cls.marker.join(DataTypeUnwrapper.convert(val)
                                    for val in input_list)
 
         if not (isinstance(possibly_dict, dict) or isinstance(possibly_dict, list)):
@@ -23,13 +23,13 @@ class ConvertUtil:
         so_far = []
         for key, value in possibly_dict.items():
             if key in ['S', 'N', 'BOOL', 'NULL', 'M']:
-                so_far += [ConvertUtil.convert(value)]
+                so_far += [DataTypeUnwrapper.convert(value)]
             elif key in ['SS', 'NS', 'BS']:
-                so_far += ['{' + ConvertUtil.convert(value) + '}']
+                so_far += ['{' + DataTypeUnwrapper.convert(value) + '}']
             elif key in ['L']:
                 so_far += ['[' + get_list_output(value) + ']']
             else:
-                so_far += [str(key) + ': ' + ConvertUtil.convert(value)]
+                so_far += [str(key) + ': ' + DataTypeUnwrapper.convert(value)]
 
         result = cls.marker.join(so_far)
 
@@ -43,7 +43,7 @@ class ConvertUtil:
         assert isinstance(dynamodb_item_response_list, list)
 
         for idx, given_dict in enumerate(dynamodb_item_response_list):
-            converted = {key: ConvertUtil.convert(value)
+            converted = {key: DataTypeUnwrapper.convert(value)
                          for key, value in given_dict.items()}
             # Warning: inplace operation, not functional...
             dynamodb_item_response_list[idx] = converted
