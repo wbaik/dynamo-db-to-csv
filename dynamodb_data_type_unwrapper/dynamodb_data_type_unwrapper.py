@@ -1,16 +1,16 @@
 class DataTypeUnwrapper:
     marker = ', '
 
-    @classmethod
-    def convert(cls, possibly_dict):
+    @staticmethod
+    def convert(possibly_dict):
         def is_single_dict(given_item):
             return isinstance(given_item, dict) and len(given_item) == 1
 
         def get_list_output(input_list):
             if isinstance(input_list, dict):
                 raise ValueError
-            return cls.marker.join(DataTypeUnwrapper.convert(val)
-                                   for val in input_list)
+            return DataTypeUnwrapper.marker.join(DataTypeUnwrapper.convert(val)
+                                                 for val in input_list)
 
         if not (isinstance(possibly_dict, dict) or isinstance(possibly_dict, list)):
             return str(possibly_dict)
@@ -31,12 +31,12 @@ class DataTypeUnwrapper:
             else:
                 so_far += [str(key) + ': ' + DataTypeUnwrapper.convert(value)]
 
-        result = cls.marker.join(so_far)
+        result = DataTypeUnwrapper.marker.join(so_far)
 
         return '{' + result + '}' if not is_single else result
 
-    @classmethod
-    def convert_items(cls, dynamodb_item_response_list):
+    @staticmethod
+    def convert_items(dynamodb_item_response_list):
         '''
         :param dynamodb_item_response_list: list from DynamoDB response from the key 'Item'
         '''
